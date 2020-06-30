@@ -1,5 +1,6 @@
 # PM25analysis
-PM2.5 analysis, to complete the coursera certification
+PM2.5 analysis, to complete the coursera certification. I have prefered build a Rmd file to answer all the questions (instead of making the files plot1.R  etc...)  
+You will find all the exercice into pm25analysis.Rmd and so visualise it into pm25analysis.html
 
 
 ## exercise:
