@@ -1,0 +1,198 @@
+---
+title: "pm25analysis"
+author: "Claire MEVOLHON"
+date: "25/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Fine particulate matter (PM2.5) is an ambient air pollutant for which there is strong evidence that it is harmful to human health. In the United States, the Environmental Protection Agency (EPA) is tasked with setting national ambient air quality standards for fine PM and for tracking the emissions of this pollutant into the atmosphere. Approximatly every 3 years, the EPA releases its database on emissions of PM2.5. This database is known as the National Emissions Inventory (NEI)  
+For each year and for each type of PM source, the NEI records how many tons of PM2.5 were emitted from that source over the course of the entire year. The data that you will use for this assignment are for 1999, 2002, 2005, and 2008.
+
+*The data for this assignment are available from the course web site as a single zip file: <https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2FNEI_data.zip>*
+  
+**We will study the following questions: **  
+1. Have total emissions from PM2.5 decreased in the United States from 1999 to 2008? 
+2. Have total emissions from PM2.5 decreased in the Baltimore City, Maryland (fips == "24510") from 1999 to 2008? Use the base plotting system to make a plot answering this question.  
+3. Of the four types of sources indicated by the type (point, nonpoint, onroad, nonroad) variable, which of these four sources have seen decreases in emissions from 1999–2008 for Baltimore City? Which have seen increases in emissions from 1999–2008?  
+4. Across the United States, how have emissions from coal combustion-related sources changed from 1999–2008?  
+5. How have emissions from motor vehicle sources changed from 1999–2008 in Baltimore City?  
+6. Compare emissions from motor vehicle sources in Baltimore City with emissions from motor vehicle sources in Los Angeles County, California (fips == "06037"). Which city has seen greater changes over time in motor vehicle emissions?  
+
+
+## Download the data
+First, let's download the data if it is not already in our workspace
+```{r data downloading, cache=TRUE, echo = FALSE}
+
+if(!file.exists('summarySCC_PM25.rds'))
+{
+    fileUrl <- 'https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2FNEI_data.zip'
+    download.file(fileUrl, destfile = './FNEI_data.zip')
+    unzip('./FNEI_data.zip', exdir = '.')
+}
+
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
+
+
+```
+
+PM2.5 Emissions Data (summarySCC_PM25.rds): This file contains a data frame with all of the PM2.5 emissions data for 1999, 2002, 2005, and 2008. For each year, the table contains number of tons of PM2.5 emitted from a specific type of source for the entire year. It contains the columns: fips , SCC , Pollutant , Emissions ,  type , year  
+* **fips**: A five-digit number (represented as a string) indicating the U.S. county
+* **SCC**: The name of the source as indicated by a digit string (see source code classification table)  
+* **Pollutant**: A string indicating the pollutant  
+* **Emissions**: Amount of PM2.5 emitted, in tons  
+* **type**: The type of source (point, non-point, on-road, or non-road)  
+* **year**: The year of emissions recorded  
+
+## Have total emissions from PM2.5 decreased in the United States from 1999 to 2008?
+Using the base plotting system, we can make a plot showing the total PM2.5 emission from all sources (variable Emission) for each of the years 1999, 2002, 2005, and 2008.  
+
+
+```{r plot1, cache = TRUE, echo = FALSE}
+
+totalEmission_by_year <- tapply(NEI$Emissions, NEI$year, sum)
+
+#png(filename = './plot1.png', width = 600, height = 480, units='px')
+barplot( totalEmission_by_year, ylab = "Total amount of PM2.5 emitted, in tons", col = "blue", main = "Total amount of PM2.5 emitted among years from 1999 to 2008 in all USA")
+#dev.off()
+
+
+```
+
+We clearly see a diminution of the total amount of PM2.5 among the years 1999 to 2008.  
+
+## Have total emissions from PM2.5 decreased in the Baltimore City, Maryland from 1999 to 2008?
+
+Lets see a little more in detail  the total emission from PM2.5 in the Baltimore City, from 1999 to 2008. To do that we will select only the fips == "245103"
+Use the base plotting system to make a plot answering this question.
+
+
+```{r emmission at Baltimore City, cache = TRUE, echo = FALSE}
+
+Baltimore_data <- NEI[which(NEI$fips == "24510"),]
+totalEmission_by_year <- tapply(Baltimore_data$Emissions, Baltimore_data$year, sum)
+
+#png(filename = './plot2.png', width = 600, height = 480, units='px')
+barplot( totalEmission_by_year, ylab = "Total amount of PM2.5 emitted, in tons", col = "green", main = "Total amount of PM2.5 emitted among years from 1999 to 2008 in Baltimore city")
+#dev.off()
+
+
+```
+Here we can see that the taotal amount of PM2.5 seems to have decreased from 1999 to 2008 but with a peak in 2005. (The amount increased from 2002 to 2005, but decreased again from 2005 to 2008)  
+
+
+## Study of different sources from 1999–2008 for Baltimore City 
+
+Of the four types of sources indicated by the type (point, nonpoint, onroad, nonroad) variable, which of these four sources have seen decreases in emissions from 1999–2008 for Baltimore City? Which have seen increases in emissions from 1999–2008?  
+
+
+```{r different sources at Baltimore City, cache = TRUE, echo = FALSE}
+
+Baltimore_data <- NEI[which(NEI$fips == "24510"),]
+
+Baltimore_data_per_year_and_date <- aggregate(Baltimore_data$Emissions,by=list(Baltimore_data$year, Baltimore_data$type), sum)
+
+names(Baltimore_data_per_year_and_date) <- c("year", "type", "Emission")
+
+#png(filename = './plot3.png', width = 600, height = 480, units='px')
+
+par(mfrow = c(2,2)) #since there 4 types of sources
+
+barplot(Baltimore_data_per_year_and_date[which(Baltimore_data_per_year_and_date$type == "POINT"), "Emission"], names.arg = Baltimore_data_per_year_and_date[which(Baltimore_data_per_year_and_date$type == "POINT"), "year"], ylab = "Total amount PM2.5, in tons", col = 2, main = "Total amount of PM2.5 from Point")
+
+barplot(Baltimore_data_per_year_and_date[which(Baltimore_data_per_year_and_date$type == "NONPOINT"), "Emission"], names.arg = Baltimore_data_per_year_and_date[which(Baltimore_data_per_year_and_date$type == "NONPOINT"), "year"], ylab = "Total amount PM2.5, in tons", col = 3, main = "Total amount of PM2.5 from Nonpoint")
+
+barplot(Baltimore_data_per_year_and_date[which(Baltimore_data_per_year_and_date$type == "ON-ROAD"), "Emission"], names.arg = Baltimore_data_per_year_and_date[which(Baltimore_data_per_year_and_date$type == "ON-ROAD"), "year"], ylab = "Total amount PM2.5, in tons", col = 4, main = "Total amount of PM2.5 from on-road")
+
+barplot(Baltimore_data_per_year_and_date[which(Baltimore_data_per_year_and_date$type == "NON-ROAD"), "Emission"], names.arg = Baltimore_data_per_year_and_date[which(Baltimore_data_per_year_and_date$type == "NON-ROAD"), "year"], ylab = "Total amount PM2.5, in tons", col = 5, main = "Total amount of PM2.5 from non-road")
+
+title("Total amount of PM2.5 in Baltimore city, by types of sources", line = -29, outer = TRUE) # line = -29 to display a correct esult with knitr
+
+#dev.off()
+
+
+```
+
+There is only the type source "on-road" that decrease all along the years from 1999 to 2008.All the others have a (sometimes little) peak in 2005.
+
+The source from "Point" has increased a lot all along the year from 1999 to 2005, then decreased a lot in 2008.
+
+
+## Across the United States, how have emissions from coal combustion-related sources changed from 1999–2008?  
+
+```{r emission from coal combustion, cache = TRUE, echo = FALSE}
+# first we need to selection the SCC number that correspond to coal combustion
+# to do that, I will grep Comb(.*)Coal from the "EI.Sector" column from the SCC dataframe.
+# and store the equivalent SCC numbers.
+
+SCC_coal <- SCC[grep("Comb(.*)Coal", SCC$EI.Sector),"SCC"]
+
+data_from_coal <- NEI[which(NEI$SCC %in% SCC_coal),]
+
+totalEmission_from_coal_by_year <- tapply(data_from_coal$Emissions, data_from_coal$year, sum)
+
+#png(filename = './plot4.png', width = 600, height = 480, units='px')
+barplot( totalEmission_from_coal_by_year, ylab = "Total amount of PM2.5 emitted, in tons", col = "blue", main = "Total amount of PM2.5 from coal emitted among years from 1999 to 2008 in all USA")
+#dev.off()
+
+
+```
+
+
+## How have emissions from motor vehicle sources changed from 1999–2008 in Baltimore City?
+
+```{r emission from vehicle combustion in Baltimore, cache = TRUE, echo = FALSE}
+# first we need to selection the SCC number that correspond to motor vehicle sources.
+# To do that, I will select the SCC where "vehicle" appears in the column "SCC.Level.Two". 
+
+
+SCC_vehicle <- SCC[grep("Vehicle", SCC$SCC.Level.Two),"SCC"]
+
+data_from_vehicle <- NEI[which(NEI$SCC %in% SCC_vehicle),]
+Baltimore_data_from_vehicle <- data_from_vehicle[which(data_from_vehicle$fips == "24510"),]
+
+Baltimore_totalEmission_from_vehicle_by_year <- tapply(Baltimore_data_from_vehicle$Emissions, Baltimore_data_from_vehicle$year, sum)
+
+#png(filename = './plot5.png', width = 600, height = 480, units='px')
+barplot( Baltimore_totalEmission_from_vehicle_by_year, ylab = "Total amount of PM2.5 emitted, in tons", col = "green", main = "Total amount of PM2.5 from vehicle emitted among years from 1999 to 2008 in Baltimore City")
+#dev.off()
+
+```
+
+I think it is really surprising that the total emission due to vehicles in Baltimore City decreased from 1999 to 2008.
+
+
+## Comparing Baltimore city and Los Angeles 
+
+Lets now compare emissions from motor vehicle sources in Baltimore City with emissions from motor vehicle sources in Los Angeles County, California (fips == "06037"). Which city has seen greater changes over time in motor vehicle emissions?
+
+```{r emission from vehicle combustion in Blatimore and Los Angeles, cache = TRUE, echo = FALSE}
+# first we need to selection the SCC number that correspond to motor vehicle sources.
+# To do that, I will select the SCC where "vehicle" appears in the column "SCC.Level.Two". 
+
+SCC_vehicle <- SCC[grep("Vehicle", SCC$SCC.Level.Two),"SCC"]
+
+data_from_vehicle <- NEI[which(NEI$SCC %in% SCC_vehicle),]
+Baltimore_data_from_vehicle <- data_from_vehicle[which(data_from_vehicle$fips == "24510"),]
+
+LosAngeles_data_from_vehicle <- data_from_vehicle[which(data_from_vehicle$fips == "06037"),]
+
+Baltimore_totalEmission_from_vehicle_by_year <- tapply(Baltimore_data_from_vehicle$Emissions, Baltimore_data_from_vehicle$year, sum)
+
+LosAngeles_totalEmission_from_vehicle_by_year <- tapply(LosAngeles_data_from_vehicle$Emissions, LosAngeles_data_from_vehicle$year, sum)
+
+tmp <- rbind(Baltimore_totalEmission_from_vehicle_by_year, LosAngeles_totalEmission_from_vehicle_by_year)
+
+
+#png(filename = './plot6.png', width = 600, height = 480, units='px')
+barplot( tmp , beside=T, ylab = "Total amount of PM2.5 emitted, in tons", col = c(2,3), legend.text = c("Baltimore City", "Los Angeles"), main = "Total amount of PM2.5 from vehicle emitted in Baltimore City and Los-Angeles")
+#dev.off()
+
+```
+
